@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Users{% endblock %}
+
+{% block content %}
+<script>
+function myFunction() {
+  var x = document.getElementById("myDIV");
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+</script>
+    {% for user in users %}
+        <li>
+            <a href="{{ url_for('user_view', index=loop.index)}}">
+                {{user[0]}}
+            </a>
+        </li>
+    {% endfor %}
+    <form action="{{url_for('search_user')}}" method="POST" enctype="multipart/form-data">
+        <label for="name">Search for a user: </label> <input type="text" name="name"> <br>
+        <button type="submit"> Search </button>
+    </form>
+
+
+    <button onclick="myFunction()">Get Hint</button>
+
+    <div id="myDIV" style="display: none;">
+        alice' UNION SELECT id, name, email, password FROM Persons; --.
+    </div>
+{% endblock %}

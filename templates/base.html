@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}{% endblock %}</title>
+    <link href="{{ url_for('static',filename='images/favicon.ico') }}" rel="shortcut icon" type="image/x-icon">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="navbar">
+        <a href="{{url_for('welcome')}}">Home</a>
+        <a href="https://learn.microsoft.com/en-us/azure/defender-for-cloud/release-notes" target="_blank" rel="noopener noreferrer">News</a>
+        <a href="{{url_for('initialize')}}" target="_blank" rel="noopener noreferrer">Initialize</a>
+        <div class="dropdown">
+          <button class="dropbtn">Demos
+            <i class="fa fa-caret-down"></i>
+          </button>
+          <div class="dropdown-content">
+            <a href="{{url_for('upload')}}">Storage Antimalware Scanning</a>
+            <a href="{{url_for('users_view')}}">SQL Databases</a>
+          </div>
+        </div>
+      </div>
+    {% block content %}
+    {% endblock %}
+</body>
+</html>

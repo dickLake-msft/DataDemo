@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Initialize{% endblock %}
+
+{% block content %}
+    <h1>
+        Initialization Instructions:
+    </h1>
+    <div class="container">
+        <p><i>Values from here should be taken out of the ARM template deployment that you did to create this Web App</i></p>
+    </div>
+    <div class="container">
+        <form action="{{url_for('initialize')}}" method="POST" enctype="multipart/form-data">
+            <label for="name">Enter your storage account name: </label><input type="text" name="storagename"> <br>
+            <label for="name">Enter your storage account container name: </label><input type="text" name="containername"> <br>
+            <label for="name">Enter your storage SQL Server name: </label><input type="text" name="sqlserver"> <br>
+            <label for="name">Enter your storage Database name: </label><input type="text" name="database"> <br>
+            <label for="name">Enter your storage Database User name: </label><input type="text" name="databaseuser"> <br>
+            <label for="name">Enter your storage Database password: </label><input type="password" name="databasepassword"> <br>
+            <button type="submit"> Initialize! </button>
+        </form>
+    </div>
+
+{% endblock %}

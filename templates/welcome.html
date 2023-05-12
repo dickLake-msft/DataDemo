@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome{% endblock %}
+
+{% block content %}
+    <h1>Welcome!</h1>
+    <p>
+        <b>This is the demo application for the Data Security capabilities of Microsoft Defender for Cloud</b>
+    </p>
+
+    <h2>Instructions:</h2>
+    <div class="container">
+        <ol type="1">
+            {% if message == 'uninititiated' %}
+                <li>In the menu bar, select 'Initialize'.  <i>Nothing works if you don't initialize it.</i>
+                    <img src="{{url_for('static', filename='images/initialize_step.png')}}" alt="Step 1"></li>
+                <li>Fill in the required information and then press the 'Initialize!' button. 
+                    <img src="{{url_for('static', filename='images/step2.png')}}" alt="Step 2"> </li>
+            {% endif %}
+                <li>Select which demo you would like to do. <br>
+                    <img src="{{url_for('static', filename='images/step3.png')}}" alt="Step 3"></li>
+        </ol>
+
+    </div>
+
+
+{% endblock %}

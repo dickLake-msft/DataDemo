@@ -1,0 +1,15 @@
+
+{% extends "base.html" %}
+
+{% block title %}Remove User{% endblock %}
+
+{% block content %}
+    <h1>Remove User</h1>
+    name: {{ user.name }} <br>
+
+    <h2>Are you sure?</h2>
+    <form method="post">
+        <button type="submit">Yes</button>
+        <a href="{{ url_for('welcome') }}">No</a>
+    </form>
+{% endblock %}
