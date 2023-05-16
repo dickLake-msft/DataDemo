@@ -15,7 +15,7 @@ function myFunction() {
 </script>
     {% for user in users %}
         <li>
-            <a href="{{ url_for('user_view', index=loop.index)}}">
+            <a href="{{ url_for('users_view', index=loop.index)}}">
                 {{user[0]}}
             </a>
         </li>

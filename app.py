@@ -69,7 +69,6 @@ def initialize():
     
     return render_template("initialize.html")
 
-
 def init_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
