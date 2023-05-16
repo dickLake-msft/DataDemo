@@ -11,10 +11,6 @@ app = Flask(__name__)
 # THIS IS NOT A GOOD PRACTICE DON'T EVER DO THIS IN PROD
 app.secret_key = os.urandom(12)
 
-#TODO: Change these out
-storage_url = "https://ninjasam.blob.core.windows.net"
-container = "contosofinance" 
-
 @app.route("/")
 def welcome():
     if not session.get("config"):
@@ -105,8 +101,6 @@ def search_user():
 @app.route('/user_view/<string:result>')
 @init_required
 def user_view(result):
-    print('in userview2')
-    print(result)
     return result
 
 @app.route('/upload', methods=["GET","POST"])
