@@ -14,6 +14,10 @@ param sqlAdminLogin string = 'DemoAdmin'
 @secure()
 param sqlAdminLoginPassword string
 
+@description('The AAD User to grant access to the DB')
+@secure()
+param sqlAADadmin string
+
 var alwaysOn = false
 var sku = 'Free'
 var skuCode = 'F1'
@@ -131,14 +135,14 @@ resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
   properties: {
     administratorLogin: sqlAdminLogin
     administratorLoginPassword: sqlAdminLoginPassword
-    administrators: {
-      administratorType: 'ActiveDirectory'
-      azureADOnlyAuthentication: false
-      login: 'dilake@buildseccxpninja.onmicrosoft.com'
-      principalType: 'User'
-      sid: '2264850e-83d5-408d-bdb7-cf6b2072889d'
-      tenantId: subscription().tenantId
-    }
+    // administrators: {
+    //   administratorType: 'ActiveDirectory'
+    //   azureADOnlyAuthentication: false
+    //   login: 'dilake@buildseccxpninja.onmicrosoft.com'
+    //   principalType: 'User'
+    //   sid: '2264850e-83d5-408d-bdb7-cf6b2072889d'
+    //   tenantId: subscription().tenantId
+    //}
     minimalTlsVersion: '1.2'
     version: '12.0'
   }
