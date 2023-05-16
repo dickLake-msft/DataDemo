@@ -104,7 +104,7 @@ def search_user():
 
 @app.route('/user_view/<string:result>')
 @init_required
-def user_view2(result):
+def user_view(result):
     print('in userview2')
     print(result)
     return result
