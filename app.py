@@ -11,6 +11,7 @@ app = Flask(__name__)
 # THIS IS NOT A GOOD PRACTICE DON'T EVER DO THIS IN PROD
 app.secret_key = os.urandom(12)
 
+
 @app.route("/")
 def welcome():
     if not session.get("config"):

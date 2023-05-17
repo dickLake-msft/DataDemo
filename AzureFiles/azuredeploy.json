@@ -1,0 +1,267 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.17.1.54307",
+      "templateHash": "10771082612371525433"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources"
+      }
+    },
+    "name": {
+      "type": "string",
+      "defaultValue": "[format('mdc-datasec-{0}', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "The name of our application.  It MUST be unique."
+      }
+    },
+    "sqlAdminLogin": {
+      "type": "string",
+      "defaultValue": "DemoAdmin",
+      "metadata": {
+        "description": "Admin user of the SQL Server"
+      }
+    },
+    "sqlAdminLoginPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The password of the admin user of the SQL server"
+      }
+    }
+  },
+  "variables": {
+    "alwaysOn": false,
+    "sku": "Free",
+    "skuCode": "F1",
+    "workerSizeId": 0,
+    "numberOfWorkers": 1,
+    "linuxFxVersion": "PYTHON|3.11",
+    "webAppName": "[format('web-app-{0}', uniqueString(resourceGroup().id))]",
+    "hostingPlanName": "[format('asp-{0}', parameters('name'))]",
+    "sqlServerName": "[format('server-{0}', parameters('name'))]",
+    "sqlDatabaseName": "[format('database-{0}', parameters('name'))]",
+    "repoUrl": "https://github.com/dickLake-msft/DataDemo",
+    "branch": "main",
+    "storageAccountBlobOwnerRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')]",
+    "contributorRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2021-02-01",
+      "name": "[format('storage{0}', uniqueString(resourceGroup().id))]",
+      "location": "[parameters('location')]",
+      "kind": "StorageV2",
+      "sku": {
+        "name": "Standard_LRS"
+      }
+    },
+    {
+      "type": "Microsoft.Security/DefenderForStorageSettings",
+      "apiVersion": "2022-12-01-preview",
+      "scope": "[format('Microsoft.Storage/storageAccounts/{0}', format('storage{0}', uniqueString(resourceGroup().id)))]",
+      "name": "current",
+      "properties": {
+        "isEnabled": true,
+        "malwareScanning": {
+          "onUpload": {
+            "isEnabled": true,
+            "capGBPerMonth": 5000
+          }
+        },
+        "sensitiveDataDiscovery": {
+          "isEnabled": true
+        },
+        "overrideSubscriptionLevelSettings": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', format('storage{0}', uniqueString(resourceGroup().id)))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices",
+      "apiVersion": "2022-09-01",
+      "name": "[format('{0}/{1}', format('storage{0}', uniqueString(resourceGroup().id)), 'default')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', format('storage{0}', uniqueString(resourceGroup().id)))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2022-09-01",
+      "name": "[format('{0}/{1}/{2}', format('storage{0}', uniqueString(resourceGroup().id)), 'default', 'uploadfromweb')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', format('storage{0}', uniqueString(resourceGroup().id)), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-03-01",
+      "name": "[variables('webAppName')]",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "siteConfig": {
+          "linuxFxVersion": "[variables('linuxFxVersion')]",
+          "alwaysOn": "[variables('alwaysOn')]"
+        },
+        "hostNamesDisabled": false,
+        "hostNameSslStates": [
+          {
+            "hostType": "Repository",
+            "name": "[format('{0}.scm.azurewebsites.net', variables('webAppName'))]",
+            "sslState": "Disabled"
+          },
+          {
+            "hostType": "Standard",
+            "name": "[format('{0}.azurewebsites.net', variables('webAppName'))]"
+          }
+        ],
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+        "clientAffinityEnabled": false
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites/sourcecontrols",
+      "apiVersion": "2021-01-01",
+      "name": "[format('{0}/{1}', variables('webAppName'), 'web')]",
+      "properties": {
+        "repoUrl": "[variables('repoUrl')]",
+        "branch": "[variables('branch')]",
+        "isManualIntegration": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('webAppName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-03-01",
+      "name": "[variables('hostingPlanName')]",
+      "location": "[parameters('location')]",
+      "kind": "linux",
+      "properties": {
+        "targetWorkerCount": "[variables('numberOfWorkers')]",
+        "targetWorkerSizeId": "[variables('workerSizeId')]",
+        "reserved": true
+      },
+      "sku": {
+        "tier": "[variables('sku')]",
+        "name": "[variables('skuCode')]"
+      }
+    },
+    {
+      "type": "Microsoft.Sql/servers",
+      "apiVersion": "2022-05-01-preview",
+      "name": "[variables('sqlServerName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "administratorLogin": "[parameters('sqlAdminLogin')]",
+        "administratorLoginPassword": "[parameters('sqlAdminLoginPassword')]",
+        "minimalTlsVersion": "1.2",
+        "version": "12.0"
+      }
+    },
+    {
+      "type": "Microsoft.Sql/servers/databases",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('{0}/{1}', variables('sqlServerName'), variables('sqlDatabaseName'))]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Basic"
+      },
+      "properties": {
+        "collation": "SQL_Latin1_General_CP1_CI_AS",
+        "maxSizeBytes": 1073741824
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Sql/servers/firewallRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('{0}/{1}', variables('sqlServerName'), 'AllowAllWindowsAzureIps')]",
+      "properties": {
+        "endIpAddress": "0.0.0.0",
+        "startIpAddress": "0.0.0.0"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Sql/servers/databases/advancedThreatProtectionSettings",
+      "apiVersion": "2022-05-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('sqlServerName'), variables('sqlDatabaseName'), 'Default')]",
+      "properties": {
+        "state": "Enabled"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers/databases', variables('sqlServerName'), variables('sqlDatabaseName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2020-12-01",
+      "name": "[format('{0}/{1}', variables('webAppName'), 'connectionstrings')]",
+      "properties": {
+        "DefaultConnection": {
+          "value": "[format('Data Source=tcp:{0},1433;Initial Catalog={1};User Id={2}@{3};Password={4};', reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName')), '2022-05-01-preview').fullyQualifiedDomainName, variables('sqlDatabaseName'), parameters('sqlAdminLogin'), reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName')), '2022-05-01-preview').fullyQualifiedDomainName, parameters('sqlAdminLoginPassword'))]",
+          "type": "SQLAzure"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]",
+        "[resourceId('Microsoft.Web/sites', variables('webAppName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceGroup().id, variables('webAppName'), resourceId('Microsoft.Web/sites', variables('webAppName')), variables('storageAccountBlobOwnerRoleDefinitionId'))]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName')), '2022-03-01', 'full').identity.principalId]",
+        "roleDefinitionId": "[variables('storageAccountBlobOwnerRoleDefinitionId')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('webAppName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceGroup().id, variables('webAppName'), resourceId('Microsoft.Web/sites', variables('webAppName')), variables('contributorRoleDefinitionId'))]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName')), '2022-03-01', 'full').identity.principalId]",
+        "roleDefinitionId": "[variables('contributorRoleDefinitionId')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('webAppName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "URL_To_Use": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/sites', variables('webAppName')), '2022-03-01').defaultHostName]"
+    },
+    "Storage_Account_Name": {
+      "type": "string",
+      "value": "[format('storage{0}', uniqueString(resourceGroup().id))]"
+    }
+  }
+}

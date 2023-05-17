@@ -1,9 +1,6 @@
 @description('Location for all resources')
 param location string = resourceGroup().location
 
-@maxLength(128)
-param managedIdentityName string
-
 @description('The name of our application.  It MUST be unique.')
 param name string = 'mdc-datasec-${uniqueString(resourceGroup().id)}'
 
@@ -13,10 +10,6 @@ param sqlAdminLogin string = 'DemoAdmin'
 @description('The password of the admin user of the SQL server')
 @secure()
 param sqlAdminLoginPassword string
-
-@description('The AAD User to grant access to the DB')
-@secure()
-param sqlAADadmin string
 
 var alwaysOn = false
 var sku = 'Free'
@@ -35,7 +28,6 @@ var contributorRoleDefinitionId = subscriptionResourceId('Microsoft.Authorizatio
 
 //TODO: ENSURE DEFENDER CSPM IS ENABLED
 
-// Create storage account
 resource storageAccount 'Microsoft.Storage/storageAccounts@2021-02-01' = {
   name: 'storage${uniqueString(resourceGroup().id)}'
   location: location
@@ -126,8 +118,6 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   }
 }
 
-//TODO: Remove my personal info and put in Managed Identity
-//TODO: NEED TO FIGURE OUT FIREWALL
 //TODO: Need to figure out VA
 resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
   name: sqlServerName
@@ -135,14 +125,6 @@ resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
   properties: {
     administratorLogin: sqlAdminLogin
     administratorLoginPassword: sqlAdminLoginPassword
-    // administrators: {
-    //   administratorType: 'ActiveDirectory'
-    //   azureADOnlyAuthentication: false
-    //   login: 'dilake@buildseccxpninja.onmicrosoft.com'
-    //   principalType: 'User'
-    //   sid: '2264850e-83d5-408d-bdb7-cf6b2072889d'
-    //   tenantId: subscription().tenantId
-    //}
     minimalTlsVersion: '1.2'
     version: '12.0'
   }
