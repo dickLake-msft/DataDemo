@@ -11,7 +11,6 @@ param sqlAdminLogin string = 'DemoAdmin'
 @secure()
 param sqlAdminLoginPassword string
 
-var alwaysOn = false
 var sku = 'Free'
 var skuCode = 'F1'
 var workerSizeId = 0
@@ -25,21 +24,26 @@ var repoUrl = 'https://github.com/dickLake-msft/DataDemo'
 var branch = 'main'
 var storageAccountBlobOwnerRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
 var contributorRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
+var storageAccountBlobContribRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roledefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
 
 //TODO: ENSURE DEFENDER CSPM IS ENABLED
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2021-02-01' = {
+// Storage Account Resources
+resource storageAccountForFileUploadAndVA 'Microsoft.Storage/storageAccounts@2021-02-01' = {
   name: 'storage${uniqueString(resourceGroup().id)}'
   location: location
   kind: 'StorageV2'
   sku: {
     name: 'Standard_LRS'
   }
+  properties:{
+    allowSharedKeyAccess:true
+  }
 }
 
 resource defenderForStorageSettings 'Microsoft.Security/DefenderForStorageSettings@2022-12-01-preview' = {
   name: 'current'
-  scope: storageAccount
+  scope: storageAccountForFileUploadAndVA
   properties: {
     isEnabled: true
     malwareScanning: {
@@ -57,15 +61,21 @@ resource defenderForStorageSettings 'Microsoft.Security/DefenderForStorageSettin
 
 resource storageAccountBlobService 'Microsoft.Storage/storageAccounts/blobServices@2022-09-01' = {
   name: 'default'
-  parent: storageAccount
+  parent: storageAccountForFileUploadAndVA
 }
 
-resource storageAccountBlobServiceContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-09-01' = {
+resource storageAccountBlobServiceContainer_Upload 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-09-01' = {
   name: 'uploadfromweb'
   parent: storageAccountBlobService
 }
 
-resource webApp 'Microsoft.Web/sites@2022-03-01' = {
+resource storageAccountBlobServiceContainer_VAScans 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-09-01' = {
+  name: 'vascans'
+  parent: storageAccountBlobService
+}
+
+// Main Web App Resources
+resource mainWebApp 'Microsoft.Web/sites@2022-03-01' = {
   name: webAppName
   location: location
   identity: {
@@ -74,7 +84,7 @@ resource webApp 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     siteConfig: {
       linuxFxVersion: linuxFxVersion
-      alwaysOn: alwaysOn
+      alwaysOn: false
     }
     hostNamesDisabled:false
     hostNameSslStates:[
@@ -88,13 +98,13 @@ resource webApp 'Microsoft.Web/sites@2022-03-01' = {
         name:'${webAppName}.azurewebsites.net'
       }
     ]
-    serverFarmId: hostingPlan.id
+    serverFarmId: mainWebAppHostingPlan.id
     clientAffinityEnabled: false
   }
 }
 
-resource srcControls 'Microsoft.Web/sites/sourcecontrols@2021-01-01' = {
-  parent: webApp
+resource linkGitHubtoWebApp 'Microsoft.Web/sites/sourcecontrols@2021-01-01' = {
+  parent: mainWebApp
   name: 'web'
   properties:{
     repoUrl:repoUrl
@@ -103,7 +113,7 @@ resource srcControls 'Microsoft.Web/sites/sourcecontrols@2021-01-01' = {
   }
 }
 
-resource hostingPlan 'Microsoft.Web/serverfarms@2022-03-01' = {
+resource mainWebAppHostingPlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   name: hostingPlanName
   location: location
   kind: 'linux'
@@ -118,7 +128,26 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   }
 }
 
-//TODO: Need to figure out VA
+resource webSiteConnectionStrings 'Microsoft.Web/sites/config@2020-12-01' = {
+  parent: mainWebApp
+  name: 'connectionstrings'
+  properties: {
+    DefaultConnection: {
+      value: 'Data Source=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabaseName};User Id=${sqlAdminLogin}@${sqlServer.properties.fullyQualifiedDomainName};Password=${sqlAdminLoginPassword};'
+      type: 'SQLAzure'
+    }
+  }
+}
+
+resource webAppToStorageAccount 'Microsoft.Web/sites/config@2020-12-01' = {
+  parent: mainWebApp
+  name: 'appsettings'
+  properties: {
+    storage_url: '${storageAccountForFileUploadAndVA.properties.primaryEndpoints.blob}${storageAccountBlobServiceContainer_Upload.name}'
+  }
+}
+
+// Database Resources
 resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
   name: sqlServerName
   location: location
@@ -127,6 +156,9 @@ resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
     administratorLoginPassword: sqlAdminLoginPassword
     minimalTlsVersion: '1.2'
     version: '12.0'
+  }
+  identity:{
+    type:'SystemAssigned'
   }
 }
 
@@ -140,6 +172,27 @@ resource sqlServerDatabase 'Microsoft.Sql/servers/databases@2021-02-01-preview' 
   properties: {
     collation: 'SQL_Latin1_General_CP1_CI_AS'
     maxSizeBytes: 1073741824
+  }
+}
+
+// //Need to test in a new environment
+// resource enableSQLVA 'Microsoft.Sql/servers/vulnerabilityAssessments@2022-08-01-preview' = {
+//   name: 'default'
+//   parent: sqlServer
+//   properties:{
+//     recurringScans:{
+//       emailSubscriptionAdmins:false
+//       isEnabled:true
+//     }
+//     storageContainerPath: '${storageAccountForFileUploadAndVA.properties.primaryEndpoints.blob}${storageAccountBlobServiceContainer_VAScans.name}'
+//   }
+// }
+
+resource sqlStorageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(resourceGroup().id, storageAccountForFileUploadAndVA.name, storageAccountForFileUploadAndVA.id, storageAccountBlobContribRoleDefinitionId)
+  properties:{
+    principalId: sqlServer.identity.principalId
+    roleDefinitionId: storageAccountBlobContribRoleDefinitionId
   }
 }
 
@@ -160,35 +213,25 @@ resource enableDef4SQL 'Microsoft.Sql/servers/databases/advancedThreatProtection
   }
 }
 
-resource webSiteConnectionStrings 'Microsoft.Web/sites/config@2020-12-01' = {
-  parent: webApp
-  name: 'connectionstrings'
-  properties: {
-    DefaultConnection: {
-      value: 'Data Source=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabaseName};User Id=${sqlAdminLogin}@${sqlServer.properties.fullyQualifiedDomainName};Password=${sqlAdminLoginPassword};'
-      type: 'SQLAzure'
-    }
-  }
-}
-
+// RBAC Resources
 // Storage Blob Data Owner
-resource roleAssignment2 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, webApp.name, webApp.id, storageAccountBlobOwnerRoleDefinitionId)
+resource grantStorageBlobDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(resourceGroup().id, mainWebApp.name, mainWebApp.id, storageAccountBlobOwnerRoleDefinitionId)
   properties: {
-    principalId: webApp.identity.principalId
+    principalId: mainWebApp.identity.principalId
     roleDefinitionId: storageAccountBlobOwnerRoleDefinitionId
   }
 }
 
 // Contributor???
-resource roleAssignment3 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name:guid(resourceGroup().id, webApp.name, webApp.id, contributorRoleDefinitionId)
+resource grantContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name:guid(resourceGroup().id, mainWebApp.name, mainWebApp.id, contributorRoleDefinitionId)
   properties:{
-    principalId:webApp.identity.principalId
+    principalId:mainWebApp.identity.principalId
     roleDefinitionId: contributorRoleDefinitionId
   }
 }
 
-output URL_To_Use string = webApp.properties.defaultHostName
-output Storage_Account_Name string = storageAccount.name
+output URL_To_Use string = mainWebApp.properties.defaultHostName
+output Storage_Account_Name string = storageAccountForFileUploadAndVA.name
 
