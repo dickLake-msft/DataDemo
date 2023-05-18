@@ -4,9 +4,6 @@
   "parameters": {
     "sqlAdminLogin": {
       "value": "DemoAdmin"
-    },
-    "managedIdentityName": {
-      "value": "DataDemoStorageReaderWriter"
     }
   }
 }
