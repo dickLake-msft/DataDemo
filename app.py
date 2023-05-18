@@ -11,9 +11,18 @@ app = Flask(__name__)
 # THIS IS NOT A GOOD PRACTICE DON'T EVER DO THIS IN PROD
 app.secret_key = os.urandom(12)
 
+if 'WEBSITE_HOSTNAME' in os.environ:
+    session['config'] = {
+            "storage_url" : request.form['storagename'],
+            "container" : request.form['containername'],
+            "sql_server" : request.form['sqlserver'],
+            "database" : request.form['database'],
+            "databaseuser" : request.form['databaseuser'],
+            "databasepassword" : request.form['databasepassword'],
+        }
 
 @app.route("/")
-def welcome():
+def welcome(*args, **kwargs):
     if not session.get("config"):
         return render_template("welcome.html", message="uninititiated")
     
