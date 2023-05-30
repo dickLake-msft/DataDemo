@@ -143,7 +143,8 @@ resource webAppToStorageAccount 'Microsoft.Web/sites/config@2020-12-01' = {
   parent: mainWebApp
   name: 'appsettings'
   properties: {
-    storage_url: '${storageAccountForFileUploadAndVA.properties.primaryEndpoints.blob}${storageAccountBlobServiceContainer_Upload.name}'
+    storage_url: storageAccountForFileUploadAndVA.properties.primaryEndpoints.blob
+    storage_container: storageAccountBlobServiceContainer_Upload.name
   }
 }
 
