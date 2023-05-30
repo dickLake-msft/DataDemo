@@ -1,10 +1,9 @@
-from flask import Flask, render_template, abort, jsonify, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobClient
 from werkzeug.utils import secure_filename
 from time import sleep
 import os
-from functools import wraps
 import pyodbc
 
 app = Flask(__name__)
@@ -101,18 +100,8 @@ def initialize():
     
     return render_template("initialize.html")
 
-# def init_required(f):
-#     @wraps(f)
-#     def decorated_function(*args, **kwargs):
-#         if not session.get("config"):
-#             return redirect(url_for("initialize"))
-#         return f(*args, **kwargs)
-#     return decorated_function
-
 @app.route("/users", methods=["GET", "POST"])
-#@init_required
 def users_view():
-    #connString = "Driver={ODBC Driver 17 for SQL Server};Server=tcp:"+session['config']['sql_server']+",1433;Database="+session['config']['database']+";Uid="+session['config']['databaseuser']+";Pwd="+session['config']['databasepassword']+";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
     with pyodbc.connect(connString) as conn:
         with conn.cursor() as cursor:
             query = "SELECT name FROM Persons"
@@ -121,10 +110,7 @@ def users_view():
     return render_template("users.html", users=result)
 
 @app.route("/search_user", methods=["GET", "POST"])
-#@init_required
 def search_user():
-    print('in search')
-    #connString = "Driver={ODBC Driver 17 for SQL Server};Server=tcp:"+session['config']['sql_server']+",1433;Database="+session['config']['database']+";Uid="+session['config']['databaseuser']+";Pwd="+session['config']['databasepassword']+";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
     with pyodbc.connect(connString) as conn:
         with conn.cursor() as cursor:
             # This is where you can inject code into.  We take input from the user and are not sanitizing it or using parameterized queries.  This is a very bad practice.  
@@ -135,12 +121,10 @@ def search_user():
     return redirect(url_for('user_view', result=result))
 
 @app.route('/user_view/<string:result>')
-#@init_required
 def user_view(result):
     return result
 
 @app.route('/upload', methods=["GET","POST"])
-#@init_required
 def upload():
     def get_scan_results(blob_client: BlobClient):
         count = 0
@@ -162,8 +146,8 @@ def upload():
 
         f = request.files['file']
         blob_client = BlobClient(
-            account_url=session['config']['storage_url'],
-            container_name=session['config']['container'],
+            account_url=storage_url,
+            container_name=storage_container,
             blob_name= secure_filename(f.filename) if not 'usesystemmalware' in request.form.keys() else 'eicar.txt',
             credential=DefaultAzureCredential()
         )
@@ -182,7 +166,6 @@ def upload():
         return render_template('upload.html')
     
 @app.route('/file_details', methods=["GET", "POST"])
-#@init_required
 def file_details():
     return render_template('file_details.html', 
                            filename=request.args.get('filename'), 
