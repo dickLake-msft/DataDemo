@@ -124,7 +124,7 @@ def users_view():
 #@init_required
 def search_user():
     print('in search')
-    connString = "Driver={ODBC Driver 17 for SQL Server};Server=tcp:"+session['config']['sql_server']+",1433;Database="+session['config']['database']+";Uid="+session['config']['databaseuser']+";Pwd="+session['config']['databasepassword']+";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+    #connString = "Driver={ODBC Driver 17 for SQL Server};Server=tcp:"+session['config']['sql_server']+",1433;Database="+session['config']['database']+";Uid="+session['config']['databaseuser']+";Pwd="+session['config']['databasepassword']+";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
     with pyodbc.connect(connString) as conn:
         with conn.cursor() as cursor:
             # This is where you can inject code into.  We take input from the user and are not sanitizing it or using parameterized queries.  This is a very bad practice.  
