@@ -43,8 +43,8 @@ def config_db(connString:str):
 if 'WEBSITE_HOSTNAME' in os.environ:
     storage_url = os.environ['APPSETTING_storage_url']
     storage_container = os.environ['APPSETTING_storage_container']
-    connstring = os.environ['SQLAZURECONNSTR_DefaultConnection']
-    config_db(connstring)
+    connString = os.environ['SQLAZURECONNSTR_DefaultConnection']
+    config_db(connString)
     init = True
 
 @app.route("/")
@@ -112,7 +112,7 @@ def initialize():
 @app.route("/users", methods=["GET", "POST"])
 #@init_required
 def users_view():
-    connString = "Driver={ODBC Driver 17 for SQL Server};Server=tcp:"+session['config']['sql_server']+",1433;Database="+session['config']['database']+";Uid="+session['config']['databaseuser']+";Pwd="+session['config']['databasepassword']+";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+    #connString = "Driver={ODBC Driver 17 for SQL Server};Server=tcp:"+session['config']['sql_server']+",1433;Database="+session['config']['database']+";Uid="+session['config']['databaseuser']+";Pwd="+session['config']['databasepassword']+";Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
     with pyodbc.connect(connString) as conn:
         with conn.cursor() as cursor:
             query = "SELECT name FROM Persons"

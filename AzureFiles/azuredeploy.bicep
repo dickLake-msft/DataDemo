@@ -133,7 +133,7 @@ resource webSiteConnectionStrings 'Microsoft.Web/sites/config@2020-12-01' = {
   name: 'connectionstrings'
   properties: {
     DefaultConnection: {
-      value: 'Data Source=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabaseName};User Id=${sqlAdminLogin}@${sqlServer.properties.fullyQualifiedDomainName};Password=${sqlAdminLoginPassword};'
+      value: 'Driver={ODBC Driver 17 for SQLServer};Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Database=${sqlDatabaseName},Uid=${sqlAdminLogin};Pwd=${sqlAdminLoginPassword};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;'
       type: 'SQLAzure'
     }
   }
