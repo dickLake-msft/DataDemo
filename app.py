@@ -143,7 +143,6 @@ def upload():
         return False, "Sorry, the file you sent was large and exceeded this apps timeout"
             
     if request.method == 'POST':
-
         f = request.files['file']
         blob_client = BlobClient(
             account_url=storage_url,
@@ -151,7 +150,6 @@ def upload():
             blob_name= secure_filename(f.filename) if not 'usesystemmalware' in request.form.keys() else 'eicar.txt',
             credential=DefaultAzureCredential()
         )
-
     
         upload_return = blob_client.upload_blob(data=secure_filename(f.filename) if not 'usesystemmalware' in request.form.keys() else b"X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*", 
                                                 overwrite=True)       
@@ -172,4 +170,6 @@ def file_details():
                            details=request.args.get('details'),
                            malware_results=request.args.get('malware_results'),
                            tags=request.args.get('tags'))
+
+
 
